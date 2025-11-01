@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Кадрирование фото</title>
-  <!-- Cropper.js CSS -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
   <style>
     * {
@@ -17,13 +16,13 @@
     body {
       background: #f5f5f7;
       color: #1d1d1f;
-      height: 100vh;
+      /* Убираем фиксированную высоту — разрешаем прокрутку */
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      padding: 16px;
-      overflow: hidden;
+      padding: 16px 16px 32px; /* Доп. отступ снизу */
+      overflow-x: hidden;
     }
 
     .app-container {
@@ -67,7 +66,10 @@
     .editor {
       position: relative;
       width: 100%;
-      height: 280px;
+      /* Увеличиваем высоту превью: 60% от высоты экрана, но не менее 250px и не более 400px */
+      min-height: 250px;
+      max-height: 400px;
+      height: 60vh;
       background: #f0f0f2;
       overflow: hidden;
       margin: 0 0 16px;
@@ -75,8 +77,6 @@
 
     #imagePreview {
       display: none;
-      max-width: none;
-      max-height: none;
       width: 100%;
       height: 100%;
       object-fit: contain;
@@ -107,19 +107,19 @@
 
     .save-btn {
       width: calc(100% - 40px);
-      margin: 0 20px 16px;
+      margin: 0 20px 24px;
       background: #34c759;
       color: white;
       border: none;
       border-radius: 14px;
-      padding: 14px;
-      font-size: 16px;
+      padding: 16px;
+      font-size: 17px;
       font-weight: 600;
       cursor: pointer;
     }
 
     footer {
-      padding: 12px 20px;
+      padding: 0 20px 16px;
       text-align: center;
       font-size: 13px;
       color: #86868b;
@@ -141,9 +141,7 @@
       <img id="imagePreview">
     </div>
 
-    <div class="options" id="options">
-      <!-- Кнопки будут добавлены скриптом -->
-    </div>
+    <div class="options" id="options"></div>
 
     <button class="save-btn" id="saveBtn" disabled>Сохранить</button>
 
@@ -152,20 +150,18 @@
     </footer>
   </div>
 
-  <!-- Cropper.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
   <script>
     const ratios = [
       { label: 'Свободно', value: NaN },
-  { label: '2.39:1', value: 2.39 },
-  { label: '2.35:1', value: 2.35 },
-  { label: '2:1', value: 2.00 },
-  { label: '1.85:1', value: 1.85 },
-  { label: '16:9', value: 16 / 9 },
-      { label: '1:1', value: 1 },
+      { label: '2.39:1', value: 2.39 },
+      { label: '2.35:1', value: 2.35 },
+      { label: '2:1', value: 2.00 },
+      { label: '1.85:1', value: 1.85 },
+      { label: '16:9', value: 16 / 9 },
       { label: '4:3', value: 4 / 3 },
       { label: '3:2', value: 3 / 2 },
-      { label: '16:9', value: 16 / 9 },
+      { label: '1:1', value: 1 },
       { label: '9:16', value: 9 / 16 },
     ];
 
@@ -178,7 +174,6 @@
     const saveBtn = document.getElementById('saveBtn');
     const optionsContainer = document.getElementById('options');
 
-    // === Загрузка изображения ===
     uploadBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -192,7 +187,6 @@
       };
     });
 
-    // === Инициализация Cropper.js ===
     function initCropper() {
       if (cropper) cropper.destroy();
       cropper = new Cropper(imagePreview, {
@@ -210,7 +204,6 @@
       });
     }
 
-    // === Кнопки соотношений ===
     ratios.forEach(ratio => {
       const btn = document.createElement('button');
       btn.className = 'option-btn';
@@ -227,17 +220,14 @@
     });
     optionsContainer.children[0].classList.add('active');
 
-    // === Сохранение ===
     saveBtn.addEventListener('click', () => {
       if (!cropper) return;
-
       const cropData = cropper.getData(true);
       const canvas = cropper.getCroppedCanvas({
         width: Math.round(cropData.width),
         height: Math.round(cropData.height),
         fillColor: '#fff'
       });
-
       const link = document.createElement('a');
       link.download = 'cropped.jpg';
       link.href = canvas.toDataURL('image/jpeg', 0.95);
