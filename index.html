@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Кадрирование фото</title>
+  <!-- Cropper.js CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: #f5f5f7;
+      color: #1d1d1f;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    header {
+      padding: 20px;
+      text-align: center;
+      background: white;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .upload-area {
+      padding: 16px 20px;
+      text-align: center;
+    }
+
+    #uploadBtn {
+      background: #0071e3;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    #fileInput { display: none; }
+
+    .editor {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      background: #f0f0f2;
+      overflow: hidden;
+      margin: 0 0 16px;
+    }
+
+    #imagePreview {
+      display: none;
+      max-width: none;
+      max-height: none;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .options {
+      padding: 0 20px 16px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .option-btn {
+      background: #f0f0f2;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: #1d1d1f;
+      cursor: pointer;
+    }
+
+    .option-btn.active {
+      background: #0071e3;
+      color: white;
+    }
+
+    .save-btn {
+      width: calc(100% - 40px);
+      margin: 0 20px 16px;
+      background: #34c759;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    footer {
+      padding: 12px 20px;
+      text-align: center;
+      font-size: 13px;
+      color: #86868b;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>Кадрирование фото</h1>
+    </header>
+
+    <div class="upload-area">
+      <input type="file" id="fileInput" accept="image/*">
+      <button id="uploadBtn">Загрузить фото</button>
+    </div>
+
+    <div class="editor">
+      <img id="imagePreview">
+    </div>
+
+    <div class="options" id="options">
+      <!-- Кнопки будут добавлены скриптом -->
+    </div>
+
+    <button class="save-btn" id="saveBtn" disabled>Сохранить</button>
+
+    <footer>
+      Перетащите или измените рамку кадрирования
+    </footer>
+  </div>
+
+  <!-- Cropper.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+  <script>
+    const ratios = [
+      { label: 'Свободно', value: NaN },
+  { label: '2.39:1', value: 2.39 },
+  { label: '2.35:1', value: 2.35 },
+  { label: '2:1', value: 2.00 },
+  { label: '1.85:1', value: 1.85 },
+  { label: '16:9', value: 16 / 9 },
+      { label: '1:1', value: 1 },
+      { label: '4:3', value: 4 / 3 },
+      { label: '3:2', value: 3 / 2 },
+      { label: '16:9', value: 16 / 9 },
+      { label: '9:16', value: 9 / 16 },
+    ];
+
+    let cropper = null;
+    let currentRatio = ratios[0].value;
+
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const imagePreview = document.getElementById('imagePreview');
+    const saveBtn = document.getElementById('saveBtn');
+    const optionsContainer = document.getElementById('options');
+
+    // === Загрузка изображения ===
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+
+      const url = URL.createObjectURL(file);
+      imagePreview.src = url;
+      imagePreview.onload = () => {
+        initCropper();
+        saveBtn.disabled = false;
+      };
+    });
+
+    // === Инициализация Cropper.js ===
+    function initCropper() {
+      if (cropper) cropper.destroy();
+      cropper = new Cropper(imagePreview, {
+        aspectRatio: currentRatio,
+        viewMode: 1,
+        responsive: true,
+        autoCropArea: 0.8,
+        movable: true,
+        zoomable: false,
+        scalable: false,
+        cropBoxResizable: true,
+        background: false,
+        guides: true,
+        center: false
+      });
+    }
+
+    // === Кнопки соотношений ===
+    ratios.forEach(ratio => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = ratio.label;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRatio = ratio.value;
+        if (cropper) {
+          cropper.setAspectRatio(currentRatio);
+        }
+      });
+      optionsContainer.appendChild(btn);
+    });
+    optionsContainer.children[0].classList.add('active');
+
+    // === Сохранение ===
+    saveBtn.addEventListener('click', () => {
+      if (!cropper) return;
+
+      const cropData = cropper.getData(true);
+      const canvas = cropper.getCroppedCanvas({
+        width: Math.round(cropData.width),
+        height: Math.round(cropData.height),
+        fillColor: '#fff'
+      });
+
+      const link = document.createElement('a');
+      link.download = 'cropped.jpg';
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    });
+  </script>
+</body>
+</html>
